@@ -14,7 +14,9 @@
   "dependencies": {
     "moment": "^2.24.0",
     "moment-timezone": "^0.5.27",
-    "owasp-password-strength-test": "github:bures/owasp-password-strength-test"
+    "owasp-password-strength-test": "github:bures/owasp-password-strength-test",
+    "rps-engine-client-js": "^3.10.6",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@babel/cli": "^7.13.16",

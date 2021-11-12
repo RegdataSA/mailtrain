@@ -32,9 +32,7 @@ async function getByIdTx(tx, context, id, withPermissions = true) {
 }
 
 async function getById(context, id, withPermissions = true) {
-    return await knex.transaction(async tx => {
-        return await getByIdTx(tx, context, id, withPermissions);
-    });
+    return await knex.transaction(async tx => await getByIdTx(tx, context, id, withPermissions));
 }
 
 async function _listDTAjax(context, namespaceId, params) {
@@ -51,6 +49,16 @@ async function _listDTAjax(context, namespaceId, params) {
         },
         [ 'templates.id', 'templates.name', 'templates.description', 'templates.type', 'templates.tag_language', 'templates.created', 'namespaces.name' ]
     );
+}
+
+function templateColumnsToObject(columns) {
+    const [id, name, description, type, tag_language, created, namespacesName, permissions] = columns;
+    return {id, name, description, type, tag_language, created, namespacesName, permissions};
+}
+
+function templateObjectToColumns(template) {
+    const {id, name, description, type, tag_language, created, namespacesName, permissions} = template;
+    return [id, name, description, type, tag_language, created, namespacesName, permissions];
 }
 
 async function listDTAjax(context, params) {
@@ -168,14 +176,16 @@ async function sendAsTransactionalEmail(context, templateId, sendConfigurationId
     await shares.enforceEntityPermission(context, 'sendConfiguration', sendConfigurationId, 'sendWithoutOverrides');
 
     await knex.transaction(async tx => {
-		for (const email of emails) {
-			await messageSender.queueAPITransactionalMessageTx(tx, sendConfigurationId, email, subject, template.html, template.text, template.tag_language, {...mergeTags,  EMAIL: email }, attachments);
-		}
-	});
+        for (const email of emails) {
+            await messageSender.queueAPITransactionalMessageTx(tx, sendConfigurationId, email, subject, template.html, template.text, template.tag_language, {...mergeTags,  EMAIL: email }, attachments);
+        }
+    });
 }
 
 
 module.exports.hash = hash;
+module.exports.templateColumnsToObject = templateColumnsToObject;
+module.exports.templateObjectToColumns = templateObjectToColumns;
 module.exports.getByIdTx = getByIdTx;
 module.exports.getById = getById;
 module.exports.listDTAjax = listDTAjax;

@@ -31,6 +31,7 @@ import styles from "../lib/styles.scss";
 import campaignsStyles from "./styles.scss";
 import {getUrl} from "../lib/urls";
 import {campaignOverridables, CampaignSource, CampaignStatus, CampaignType} from "../../../shared/campaigns";
+import {engineProvider, Criteria} from '../lib/engine'
 import moment from 'moment';
 import {getMailerTypes} from "../send-configurations/helpers";
 import {getCampaignLabels, ListsSelectorHelper} from "./helpers";
@@ -517,7 +518,15 @@ export default class CUD extends Component {
         this.disableForm();
         this.setFormStatusMessage('info', t('saving'));
 
-        const submitResult = await this.validateAndSendFormValuesToURL(sendMethod, url);
+        const data = this.getFormValues()
+        const needEncrypt = data.reply_to_overriden || data.from_email_overriden
+        const encryptMethod = instance => engineProvider.encryptInstance(instance, Criteria.CAMPAIGN_SETTINGS)
+
+        const submitResult = await this.validateAndSendFormValuesToURL(
+          sendMethod,
+          url,
+          needEncrypt ? encryptMethod : undefined
+        );
 
         if (submitResult) {
             if (this.props.entity) {

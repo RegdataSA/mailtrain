@@ -195,19 +195,17 @@ async function listTestUsersDTAjax(context, campaignId, params) {
                 context,
                 [{ entityTypeId: 'list', requiredOperations: ['viewTestSubscriptions'], column: 'subs.list_id' }],
                 params,
-                builder => {
-                    return builder.from(function () {
-                        return this.from(subsQry)
-                            .innerJoin('lists', 'test_subscriptions.list', 'lists.id')
-                            .innerJoin('namespaces', 'lists.namespace', 'namespaces.id')
-                            .select([
-                                knex.raw('CONCAT_WS(":", lists.cid, test_subscriptions.cid) AS cid'),
-                                'test_subscriptions.email', 'test_subscriptions.cid AS subscription_cid', 'lists.cid AS list_cid',
-                                'lists.name as list_name', 'namespaces.name AS namespace_name', 'lists.id AS list_id'
-                            ])
-                            .as('subs');
-                    });
-                },
+                builder => builder.from(function () {
+                    return this.from(subsQry)
+                        .innerJoin('lists', 'test_subscriptions.list', 'lists.id')
+                        .innerJoin('namespaces', 'lists.namespace', 'namespaces.id')
+                        .select([
+                            knex.raw('CONCAT_WS(":", lists.cid, test_subscriptions.cid) AS cid'),
+                            'test_subscriptions.email', 'test_subscriptions.cid AS subscription_cid', 'lists.cid AS list_cid',
+                            'lists.name as list_name', 'namespaces.name AS namespace_name', 'lists.id AS list_id'
+                        ])
+                        .as('subs');
+                }),
                 [ 'subs.cid', 'subs.email', 'subs.subscription_cid', 'subs.list_cid', 'subs.list_name', 'subs.namespace_name' ]
             );
 
@@ -240,7 +238,7 @@ async function _listSubscriberResultsDTAjax(context, campaignId, getSubsQrys, co
             let subsSql, subsBindings;
 
             if (subsQrys.length === 1) {
-                subsSql = '(' + subsQrys[0].sql + ') as `subs`'
+                subsSql = '(' + subsQrys[0].sql + ') as `subs`';
                 subsBindings = subsQrys[0].bindings;
 
             } else {
@@ -319,7 +317,7 @@ async function listOpensDTAjax(context, campaignId, params) {
 }
 
 async function listLinkClicksDTAjax(context, campaignId, params) {
-    return await knex.transaction(async (tx) => {
+    return await knex.transaction(async tx => {
         await shares.enforceEntityPermissionTx(tx, context, 'campaign', campaignId, 'viewStats');
 
         return await dtHelpers.ajaxListTx(
@@ -361,7 +359,7 @@ async function rawGetByTx(tx, key, id) {
             'campaigns.send_configuration', 'campaigns.from_name_override', 'campaigns.from_email_override', 'campaigns.reply_to_override', 'campaigns.subject',
             'campaigns.data', 'campaigns.click_tracking_disabled', 'campaigns.open_tracking_disabled', 'campaigns.unsubscribe_url', 'campaigns.scheduled',
             'campaigns.delivered', 'campaigns.unsubscribed', 'campaigns.bounced', 'campaigns.complained', 'campaigns.blacklisted', 'campaigns.opened', 'campaigns.clicks',
-            knex.raw(`GROUP_CONCAT(CONCAT_WS(\':\', campaign_lists.list, campaign_lists.segment) ORDER BY campaign_lists.id SEPARATOR \';\') as lists`)
+            knex.raw('GROUP_CONCAT(CONCAT_WS(\':\', campaign_lists.list, campaign_lists.segment) ORDER BY campaign_lists.id SEPARATOR \';\') as lists')
         ])
         .first();
 
@@ -429,9 +427,7 @@ async function getByIdTx(tx, context, id, withPermissions = true, content = Cont
 }
 
 async function getById(context, id, withPermissions = true, content = Content.ALL) {
-    return await knex.transaction(async tx => {
-        return await getByIdTx(tx, context, id, withPermissions, content);
-    });
+    return await knex.transaction(async tx => await getByIdTx(tx, context, id, withPermissions, content));
 }
 
 async function getByCid(context, cid) {
@@ -451,7 +447,7 @@ async function _validateAndPreprocess(tx, context, entity, isCreate, content) {
         if (isCreate) {
             enforce(entity.type === CampaignType.REGULAR || entity.type === CampaignType.RSS || entity.type === CampaignType.TRIGGERED ||
                     (content === Content.RSS_ENTRY && entity.type === CampaignType.RSS_ENTRY),
-                'Unknown campaign type');
+            'Unknown campaign type');
 
             if (entity.source === CampaignSource.TEMPLATE || entity.source === CampaignSource.CUSTOM_FROM_TEMPLATE) {
                 await shares.enforceEntityPermissionTx(tx, context, 'template', entity.data.sourceTemplate, 'view');
@@ -542,8 +538,8 @@ async function _createTx(tx, context, entity, content) {
 
         if (entity.source === CampaignSource.TEMPLATE) {
             await tx('template_dep_campaigns').insert({
-               campaign: id,
-               template: entity.data.sourceTemplate
+                campaign: id,
+                template: entity.data.sourceTemplate
             });
         }
 
@@ -569,9 +565,7 @@ async function _createTx(tx, context, entity, content) {
 }
 
 async function create(context, entity) {
-    return await knex.transaction(async tx => {
-        return await _createTx(tx, context, entity, Content.ALL);
-    });
+    return await knex.transaction(async tx => await _createTx(tx, context, entity, Content.ALL));
 }
 
 async function createRssTx(tx, context, entity) {
@@ -715,7 +709,7 @@ async function enforceSendPermissionTx(tx, context, campaignOrCampaignId, isToTe
 // Message API
 
 function getMessageCid(campaignCid, listCid, subscriptionCid) {
-    return [campaignCid, listCid, subscriptionCid].join('.')
+    return [campaignCid, listCid, subscriptionCid].join('.');
 }
 
 async function getMessageByCid(messageCid, withVerpHostname = false) { // withVerpHostname is used by verp-server.js
@@ -995,7 +989,6 @@ async function fetchRssCampaign(context, cid) {
 
 async function testSend(context, data) {
     // Though it's a bit counter-intuitive, this handles also test sends of a template (i.e. without any campaign id)
-
     await knex.transaction(async tx => {
         const processSubscriber = async (sendConfigurationId, listId, subscriptionId, messageData) => {
             await messageSender.queueCampaignMessageTx(tx, sendConfigurationId, listId, subscriptionId, messageSender.MessageType.TEST, messageData);
@@ -1015,10 +1008,11 @@ async function testSend(context, data) {
              */
 
             const campaign = await getByIdTx(tx, context, campaignId, false);
+
             const sendConfigurationId = campaign.send_configuration;
 
             const messageData = {
-                campaignId: campaignId,
+                campaignId,
                 subject: data.subjectPrepend + campaign.subject + data.subjectAppend,
                 html: data.html, // The html, text and tagLanguage may be undefined
                 text: data.text,
@@ -1089,7 +1083,6 @@ async function testSend(context, data) {
 
             const list = await lists.getByCidTx(tx, context, data.listCid);
             const subscriber = await subscriptions.getByCidTx(tx, context, list.id, data.subscriptionCid, true, true);
-
             await shares.enforceEntityPermissionTx(tx, context, 'sendConfiguration', data.sendConfigurationId, 'sendWithoutOverrides');
             await shares.enforceEntityPermissionTx(tx, context, 'template', data.templateId, 'sendToTestUsers');
             await shares.enforceEntityPermissionTx(tx, context, 'list', list.id, 'sendToTestUsers');
@@ -1115,11 +1108,22 @@ async function getRssPreview(context, campaignCid, listCid, subscriptionCid) {
     return await messageSender.getMessage(campaignCid, listCid, subscriptionCid, settings, true);
 }
 
+function testSubscriberColumnsToObject(columns) {
+    const [cid, email, ...subscriberProperties] = columns;
+    return {cid, email, subscriberProperties};
+}
+
+function testSubscriberObjectToColumns(subscriber) {
+    const {cid, email, subscriberProperties} = subscriber;
+    return [cid, email, ...subscriberProperties];
+}
 
 module.exports.Content = Content;
 module.exports.hash = hash;
 
 module.exports.listDTAjax = listDTAjax;
+module.exports.testSubscriberObjectToColumns = testSubscriberObjectToColumns;
+module.exports.testSubscriberColumnsToObject = testSubscriberColumnsToObject;
 module.exports.listByChannelDTAjax = listByChannelDTAjax;
 module.exports.listByNamespaceDTAjax = listByNamespaceDTAjax;
 module.exports.listChildrenDTAjax = listChildrenDTAjax;

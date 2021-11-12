@@ -36,12 +36,16 @@ module.exports = {
                                         "ios": "10"
                                     }
                                 }],
-                                '@babel/preset-react'
+                                '@babel/preset-react',
+                                '@babel/runtime'
                             ],
                             plugins: [
                                 ["@babel/plugin-proposal-decorators", { "legacy": true }],
                                 ["@babel/plugin-proposal-class-properties", { "loose" : true }],
-                                "@babel/plugin-proposal-function-bind"
+                                ["@babel/plugin-proposal-private-methods", { "loose": true }],
+                                "@babel/plugin-proposal-function-bind",
+                                "@babel/plugin-transform-runtime",
+                                "@babel/plugin-transform-modules-commonjs"
                             ]
                         }
                     }
@@ -60,14 +64,14 @@ module.exports = {
             },
             {
                 test: /\.(png|jpg|gif)$/,
-                use: [ 
+                use: [
                     {
                         loader: 'url-loader',
                         options: {
                             limit: 8192 // inline base64 URLs for <=8k images, direct URLs for the rest
                         }
                     }
-                ] 
+                ]
             },
             {
                 test: /\.scss$/,

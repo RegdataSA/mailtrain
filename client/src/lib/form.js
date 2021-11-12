@@ -1585,7 +1585,7 @@ const withForm = createComponentMixin({
             this.populateFormValues(data);
         };
 
-        proto.validateAndSendFormValuesToURL = async function (method, url) {
+        proto.validateAndSendFormValuesToURL = async function (method, url, encryptMethod) {
             const settings = this.state.formSettings;
             await this.waitForFormServerValidated();
 
@@ -1603,7 +1603,6 @@ const withForm = createComponentMixin({
                 }
 
                 let data = this.getFormValues();
-
                 if (this.submitFormValuesMutator) {
                     const newData = this.submitFormValuesMutator(data, true);
                     if (newData !== undefined) {
@@ -1611,7 +1610,12 @@ const withForm = createComponentMixin({
                     }
                 }
 
-                const response = await axios.method(method, getUrl(url), data);
+                const processData = async (data) => {
+                    return typeof encryptMethod === 'function' ? await encryptMethod(data) : data;
+                };
+
+                const processedData = await processData(data);
+                const response = await axios.method(method, getUrl(url), processedData);
 
                 if (settings.leaveConfirmation) {
                     await new Promise((resolve, reject) => {

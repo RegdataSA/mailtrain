@@ -136,7 +136,6 @@ export default class CUD extends Component {
         this.setFormStatusMessage('info', t('saving'));
 
         const submitResult = await this.validateAndSendFormValuesToURL(sendMethod, url);
-
         if (submitResult) {
             if (this.props.entity) {
                 if (submitAndLeave) {

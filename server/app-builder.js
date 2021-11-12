@@ -39,6 +39,7 @@ const sendConfigurationsRest = require('./routes/rest/send-configurations');
 const usersRest = require('./routes/rest/users');
 const accountRest = require('./routes/rest/account');
 const reportTemplatesRest = require('./routes/rest/report-templates');
+const engineAuthRest = require('./routes/rest/engine-auth');
 const reportsRest = require('./routes/rest/reports');
 const channelsRest = require('./routes/rest/channels');
 const campaignsRest = require('./routes/rest/campaigns');
@@ -318,6 +319,7 @@ async function createApp(appType) {
         app.use('/rest', editorsRest);
         app.use('/rest', filesRest);
         app.use('/rest', settingsRest);
+        app.use('/rest', engineAuthRest);
 
         if (config.reports && config.reports.enabled === true) {
             app.use('/rest', reportTemplatesRest);

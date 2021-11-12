@@ -62,7 +62,7 @@ fieldTypes.date = {
     afterJSON: (groupedField, entity) => {
         const key = getFieldColumn(groupedField);
         if (key in entity) {
-            entity[key] = entity[key] ? moment(entity[key]).utc().format("YYYY-MM-DD HH:mm:ss") : null;
+            entity[key] = entity[key] ? moment(entity[key]).utc().format('YYYY-MM-DD HH:mm:ss') : null;
         }
     },
     listRender: (groupedField, value) => formatDate(groupedField.settings.dateFormat, value)
@@ -72,7 +72,7 @@ fieldTypes.birthday = {
     afterJSON: (groupedField, entity) => {
         const key = getFieldColumn(groupedField);
         if (key in entity) {
-            entity[key] = entity[key] ? moment(entity[key]).utc().format("YYYY-MM-DD HH:mm:ss") : null;
+            entity[key] = entity[key] ? moment(entity[key]).utc().format('YYYY-MM-DD HH:mm:ss') : null;
         }
     },
     listRender: (groupedField, value) => formatBirthday(groupedField.settings.dateFormat, value)
@@ -224,9 +224,7 @@ async function _getByTx(tx, context, listId, key, value, grouped, isTest) {
 }
 
 async function _getBy(context, listId, key, value, grouped, isTest) {
-    return await knex.transaction(async tx => {
-        return _getByTx(tx, context, listId, key, value, grouped, isTest);
-    });
+    return await knex.transaction(async tx => _getByTx(tx, context, listId, key, value, grouped, isTest));
 }
 
 async function getById(context, listId, id, grouped = true) {
@@ -248,6 +246,17 @@ async function getByCid(context, listId, cid, grouped = true, isTest = false) {
 
 async function getByCidTx(tx, context, listId, cid, grouped = true, isTest = false) {
     return await _getByTx(tx, context, listId, 'cid', cid, grouped, isTest);
+}
+
+
+function subscriberColumnsToObject(columns) {
+    const [id, cid, email, ...subscriberProperties] = columns;
+    return {id, cid, email, subscriberProperties};
+}
+
+function subscriberObjectToColumns(subscriber) {
+    const {id, cid, email, subscriberProperties} = subscriber;
+    return [id, cid, email, ...subscriberProperties];
 }
 
 async function listDTAjax(context, listId, segmentId, params) {
@@ -291,7 +300,7 @@ async function listDTAjax(context, listId, segmentId, params) {
                     name: colName,
                     raw: '? as `' + colName + '`',
                     data: [0]
-                })
+                });
             }
 
             idxMap[fldCol] = listFldIdx;
@@ -564,10 +573,8 @@ function updateSourcesAndHashEmail(subscription, source, groupedFieldsMap) {
                     subscription['source_' + option.column] = source;
                 }
             }
-        } else {
-            if (fldCol in subscription) {
-                subscription['source_' + fldCol] = source;
-            }
+        } else if (fldCol in subscription) {
+            subscription['source_' + fldCol] = source;
         }
     }
 }
@@ -803,9 +810,7 @@ async function unsubscribeByEmailAndGetTx(tx, context, listId, email) {
 }
 
 async function unsubscribeByEmailAndGet(context, listId, email) {
-    return await knex.transaction(async tx => {
-        return await unsubscribeByEmailAndGetTx(tx, context, listId, email);
-    });
+    return await knex.transaction(async tx => await unsubscribeByEmailAndGetTx(tx, context, listId, email));
 }
 
 async function changeStatusTx(tx, context, listId, subscriptionId, subscriptionStatus) {
@@ -873,7 +878,7 @@ async function getListsWithEmail(context, email) {
             await shares.enforceEntityPermissionTx(tx, context, 'list', list.id, 'viewSubscriptions');
             const entity = await tx(getSubscriptionTableName(list.id)).where('hash_email', hashEmail(email)).whereNotNull('email').first();
             if (entity) {
-               list.status=entity.status;
+                list.status=entity.status;
                 result.push(list);
             }
         }
@@ -888,6 +893,8 @@ module.exports.getById = getById;
 module.exports.getByCidTx = getByCidTx;
 module.exports.getByCid = getByCid;
 module.exports.getByEmail = getByEmail;
+module.exports.subscriberColumnsToObject = subscriberColumnsToObject;
+module.exports.subscriberObjectToColumns = subscriberObjectToColumns;
 module.exports.list = list;
 module.exports.listIterator = listIterator;
 module.exports.listDTAjax = listDTAjax;

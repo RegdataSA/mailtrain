@@ -231,8 +231,8 @@ async function workersLoop() {
             'sendConfigurationId',
             sendConfigurationMessageQueue,
             'process-queued-messages',
-                id => id,
-                task => `sendConfigurationMessageQueueEmpty:${task.id}`
+            id => id,
+            task => `sendConfigurationMessageQueueEmpty:${task.id}`
         );
 
         initAllocation(
@@ -240,7 +240,7 @@ async function workersLoop() {
             'campaignId',
             campaignMessageQueue,
             'process-campaign-messages',
-                id => sendConfigurationIdByCampaignId.get(id),
+            id => sendConfigurationIdByCampaignId.get(id),
             task => `campaignMessageQueueEmpty:${task.id}`
         );
 
@@ -300,7 +300,7 @@ async function processCampaign(campaignId) {
     const msgQueue = campaignMessageQueue.get(campaignId);
 
     const isCompleted = () => {
-        if (msgQueue.length > 0) return false;
+        if (msgQueue.length > 0) {return false;}
 
         let workerRunning = false;
 
@@ -474,7 +474,7 @@ async function processQueuedBySendConfiguration(sendConfigurationId) {
     const msgQueue = sendConfigurationMessageQueue.get(sendConfigurationId);
 
     const isCompleted = () => {
-        if (msgQueue.length > 0) return false;
+        if (msgQueue.length > 0) {return false;}
 
         let workerRunning = false;
 
@@ -702,7 +702,7 @@ async function init() {
             } else if (type === 'reload-config') {
                 const sendConfigurationStatus = getSendConfigurationStatus(msg.data.sendConfigurationId);
                 if (sendConfigurationStatus.retryCount > 0) {
-                    const sendConfigurationStatus = getSendConfigurationStatus(msg.data.sendConfigurationId)
+                    const sendConfigurationStatus = getSendConfigurationStatus(msg.data.sendConfigurationId);
                     setSendConfigurationRetryCount(sendConfigurationStatus, 0);
 
                     // noinspection JSIgnoredPromiseFromCall

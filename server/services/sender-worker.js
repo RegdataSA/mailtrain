@@ -132,11 +132,11 @@ process.on('message', msg => {
 
         } else if (type === 'process-campaign-messages') {
             // noinspection JSIgnoredPromiseFromCall
-            processCampaignMessages(msg.data.campaignId, msg.data.messages)
+            processCampaignMessages(msg.data.campaignId, msg.data.messages);
 
         } else if (type === 'process-queued-messages') {
             // noinspection JSIgnoredPromiseFromCall
-            processQueuedMessages(msg.data.sendConfigurationId, msg.data.messages)
+            processQueuedMessages(msg.data.sendConfigurationId, msg.data.messages);
         }
     }
 });

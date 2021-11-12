@@ -18,8 +18,8 @@ const slugify = require('slugify');
 const passport = require('../lib/passport');
 const templates = require('../models/templates');
 const campaigns = require('../models/campaigns');
-const urls = require('../lib/urls')
-const { getMergeTagsForBases } = require('../../shared/templates')
+const urls = require('../lib/urls');
+const { getMergeTagsForBases } = require('../../shared/templates');
 const {castToInteger} = require('../lib/helpers');
 const {getSystemSendConfigurationId} = require('../../shared/send-configurations');
 
@@ -154,8 +154,8 @@ router.getAsync('/subscriptions/:listCid', passport.loggedIn, async (req, res) =
     res.json({
         data: {
             total: result.total,
-            start: start,
-            limit: limit,
+            start,
+            limit,
             subscriptions: result.subscriptions
         }
     });
@@ -172,7 +172,7 @@ router.getAsync('/lists/:email', passport.loggedIn, async (req, res) => {
 
 // get lists by namespace
 router.getAsync(
-    "/lists-by-namespace/:namespaceId",
+    '/lists-by-namespace/:namespaceId',
     passport.loggedIn,
     async (req, res) => {
         const _lists = await lists.getByNamespaceId(
@@ -191,21 +191,21 @@ router.getAsync(
 router.postAsync('/list', passport.loggedIn, async (req, res) => {
     const input = {};
     Object.keys(req.body).forEach(key => {
-      input[(key || '').toString().trim().toLowerCase()] = (req.body[key] || '').toString().trim();
+        input[(key || '').toString().trim().toLowerCase()] = (req.body[key] || '').toString().trim();
     });
 
     if (input.fieldwizard) {
-      input.fieldWizard = input.fieldwizard
-      delete input.fieldwizard
+        input.fieldWizard = input.fieldwizard;
+        delete input.fieldwizard;
     }
 
     if (!input.namespace) {
         throw new APIError('Missing namespace', 400);
     }
 
-    var id = await lists.create(req.context, input);
+    let id = await lists.create(req.context, input);
 
-    var list = await lists.getById(req.context, id)
+    let list = await lists.getById(req.context, id);
 
     res.status(200);
     res.json({
@@ -215,11 +215,11 @@ router.postAsync('/list', passport.loggedIn, async (req, res) => {
 
 // delete list
 router.deleteAsync('/list/:listCid', passport.loggedIn, async (req, res) => {
-  const list = await lists.getByCid(req.context, req.params.listCid);
-  await lists.remove(req.context, list.id);
+    const list = await lists.getByCid(req.context, req.params.listCid);
+    await lists.remove(req.context, list.id);
 
-  res.status(200);
-  res.json({});
+    res.status(200);
+    res.json({});
 });
 
 router.postAsync('/field/:listCid', passport.loggedIn, async (req, res) => {
@@ -330,8 +330,8 @@ router.getAsync('/blacklist/get', passport.loggedIn, async (req, res) => {
     return res.json({
         data: {
             total,
-            start: start,
-            limit: limit,
+            start,
+            limit,
             emails
         }
     });
@@ -366,7 +366,7 @@ router.postAsync('/templates/:templateId/send', async (req, res) => {
     const emails = input.EMAIL.split(',');
     const mergeTagsGlobal = getMergeTagsForBases(urls.getTrustedUrl(), urls.getSandboxUrl(), urls.getPublicUrl());
     const mergeTagsLocal = input.TAGS || {};
-    const mergeTags = { ...mergeTagsGlobal, ...mergeTagsLocal}
+    const mergeTags = { ...mergeTagsGlobal, ...mergeTagsLocal};
     const subject = input.SUBJECT || '';
     const attachments = input.ATTACHMENTS || [];
 

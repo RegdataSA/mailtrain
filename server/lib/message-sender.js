@@ -13,6 +13,7 @@ const fields = require('../models/fields');
 const sendConfigurations = require('../models/send-configurations');
 const links = require('../models/links');
 const {CampaignSource, CampaignType} = require('../../shared/campaigns');
+const {engineProvider, Criteria} = require('../lib/engine');
 const {toNameTagLangauge} = require('../../shared/lists');
 const {CampaignMessageStatus, CampaignMessageErrorType} = require('../../shared/campaigns');
 const tools = require('./tools');
@@ -265,7 +266,7 @@ class MessageSender {
             text = htmlToText.fromString(html, {wordwrap: 130});
         } else {
             // When no list and subscriptionGrouped is provided, formatCampaignTemplate works the same way as formatTemplate
-            text = tools.formatCampaignTemplate(text, this.tagLanguage, mergeTags, false, campaign, this.listsById, list, subscriptionGrouped)
+            text = tools.formatCampaignTemplate(text, this.tagLanguage, mergeTags, false, campaign, this.listsById, list, subscriptionGrouped);
         }
 
         return {
@@ -280,13 +281,13 @@ class MessageSender {
 
         if (this.rssEntry) {
             const rssEntry = this.rssEntry;
-            tags['RSS_ENTRY_TITLE'] = rssEntry.title;
-            tags['RSS_ENTRY_DATE'] = rssEntry.date;
-            tags['RSS_ENTRY_LINK'] = rssEntry.link;
-            tags['RSS_ENTRY_CONTENT'] = rssEntry.content;
-            tags['RSS_ENTRY_SUMMARY'] = rssEntry.summary;
-            tags['RSS_ENTRY_IMAGE_URL'] = rssEntry.imageUrl;
-            tags['RSS_ENTRY_CUSTOM_TAGS'] = rssEntry.customTags;
+            tags.RSS_ENTRY_TITLE = rssEntry.title;
+            tags.RSS_ENTRY_DATE = rssEntry.date;
+            tags.RSS_ENTRY_LINK = rssEntry.link;
+            tags.RSS_ENTRY_CONTENT = rssEntry.content;
+            tags.RSS_ENTRY_SUMMARY = rssEntry.summary;
+            tags.RSS_ENTRY_IMAGE_URL = rssEntry.imageUrl;
+            tags.RSS_ENTRY_CUSTOM_TAGS = rssEntry.customTags;
         }
 
         return tags;
@@ -311,6 +312,7 @@ class MessageSender {
         - mergeTags [used only when campaign / html+text is provided]
      */
     async _sendMessage(subData) {
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
         let to, email;
         let envelope = false;
         let sender = false;
@@ -332,7 +334,8 @@ class MessageSender {
 
             if (subData.subscriptionId) {
                 listId = subData.listId;
-                subscriptionGrouped = await subscriptions.getById(contextHelpers.getAdminContext(), listId, subData.subscriptionId);
+                const encryptedSubscription = await subscriptions.getById(contextHelpers.getAdminContext(), listId, subData.subscriptionId);
+                subscriptionGrouped = await engineProvider.decryptInstance(encryptedSubscription, Criteria.SUBSCRIBER);
             }
 
             list = this.listsById.get(listId);
@@ -433,12 +436,23 @@ class MessageSender {
             }
         };
 
+        const encryptedCampaignOverridableProps = {
+            from_name: getOverridable('from_name'),
+            from_email: getOverridable('from_email'),
+            reply_to: getOverridable('reply_to')
+        };
+
+        const decryptedCampaignOverridableProps = await engineProvider.decryptInstance(
+          encryptedCampaignOverridableProps,
+          Criteria.CAMPAIGN_SETTINGS
+        );
+
         const mail = {
             from: {
-                name: getOverridable('from_name'),
-                address: getOverridable('from_email')
+                name: decryptedCampaignOverridableProps.form_name,
+                address: decryptedCampaignOverridableProps.from_email
             },
-            replyTo: getOverridable('reply_to'),
+            replyTo: decryptedCampaignOverridableProps.reply_to,
             xMailer: sendConfiguration.x_mailer ? sendConfiguration.x_mailer : false,
             to,
             sender,
@@ -451,7 +465,6 @@ class MessageSender {
             attachments: message.attachments,
             encryptionKeys
         };
-
 
         let response;
         let responseId = null;
@@ -509,7 +522,7 @@ class MessageSender {
 
         const result = {
             response,
-            responseId: responseId,
+            responseId,
             list,
             subscriptionGrouped,
             email
@@ -535,19 +548,19 @@ class MessageSender {
             result = await this._sendMessage({listId: campaignMessage.list, subscriptionId: campaignMessage.subscription});
         } catch (err) {
             if (err.campaignMessageErrorType === CampaignMessageErrorType.PERMANENT) {
-              await knex('campaign_messages')
-                .where({id: campaignMessage.id})
-                .update({
-                  status: CampaignMessageStatus.FAILED,
-                  updated: new Date()
-                });
+                await knex('campaign_messages')
+                    .where({id: campaignMessage.id})
+                    .update({
+                        status: CampaignMessageStatus.FAILED,
+                        updated: new Date()
+                    });
             } else {
-              await knex('campaign_messages')
-                .where({id: campaignMessage.id})
-                .update({
-                    status: CampaignMessageStatus.SCHEDULED,
-                    updated: new Date()
-                });
+                await knex('campaign_messages')
+                    .where({id: campaignMessage.id})
+                    .update({
+                        status: CampaignMessageStatus.SCHEDULED,
+                        updated: new Date()
+                    });
             }
             throw err;
         }
@@ -692,6 +705,7 @@ async function queueCampaignMessageTx(tx, sendConfigurationId, listId, subscript
 
     msgData.listId = listId;
     msgData.subscriptionId = subscriptionId;
+
 
     await tx('queued').insert({
         send_configuration: sendConfigurationId,

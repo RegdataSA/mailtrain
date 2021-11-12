@@ -21,6 +21,7 @@ import {
 import {withErrorHandling} from '../../lib/error-handling';
 import {RestActionModalDialog} from "../../lib/modals";
 import interoperableErrors from '../../../../shared/interoperable-errors';
+import {engineProvider, Criteria} from '../../lib/engine'
 import {getFieldColumn, SubscriptionStatus} from '../../../../shared/lists';
 import {getFieldTypes, getSubscriptionStatusLabels} from './helpers';
 import moment from 'moment-timezone';
@@ -144,7 +145,8 @@ export default class CUD extends Component {
             this.disableForm();
             this.setFormStatusMessage('info', t('saving'));
 
-            const submitResult = await this.validateAndSendFormValuesToURL(sendMethod, url);
+            const encryptMethod = instance => engineProvider.encryptInstance(instance, Criteria.SUBSCRIBER)
+            const submitResult = await this.validateAndSendFormValuesToURL(sendMethod, url, encryptMethod);
 
             if (submitResult) {
                 if (this.props.entity) {

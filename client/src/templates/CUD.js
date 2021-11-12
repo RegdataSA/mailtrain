@@ -30,8 +30,8 @@ import styles from "../lib/styles.scss";
 import {getUrl} from "../lib/urls";
 import {TestSendModalDialog, TestSendModalDialogMode} from "../campaigns/TestSendModalDialog";
 import {withComponentMixins} from "../lib/decorator-helpers";
+import {engineProvider, Criteria} from '../lib/engine'
 import moment from 'moment';
-
 
 @withComponentMixins([
     withTranslation,
@@ -202,7 +202,8 @@ export default class CUD extends Component {
         this.disableForm();
         this.setFormStatusMessage('info', t('saving'));
 
-        const submitResult = await this.validateAndSendFormValuesToURL(sendMethod, url);
+        const encryptMethod = instance => engineProvider.encryptInstance(instance, Criteria.TEMPLATE)
+        const submitResult = await this.validateAndSendFormValuesToURL(sendMethod, url, encryptMethod);
 
         if (submitResult) {
             if (this.props.entity) {
